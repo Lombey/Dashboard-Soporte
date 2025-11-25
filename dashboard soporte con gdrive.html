@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Soporte Técnico - ISO 9001</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .drag-active {
+            border-color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+
+        .tab-button.active {
+            border-bottom-color: #0284c7;
+            color: #0284c7;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-600 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">Dashboard de Gestión de Soporte</h1>
+                    <p class="text-xs text-slate-500">ISO 9001 Quality Management</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="resetDashboard()"
+                    class="text-sm text-slate-500 hover:text-brand-600 transition-colors">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto p-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+            <!-- Upload Section -->
+            <div id="upload-section"
+                class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 transition-all duration-200">
+                <div class="max-w-2xl mx-auto">
+                    <!-- Header -->
+                    <div class="text-center mb-6">
+                        <div
+                            class="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center mx-auto text-2xl mb-3">
+                            <i class="fa-solid fa-database"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold text-slate-900">Cargar Datos</h2>
+                        <p class="text-slate-500 text-sm">Selecciona una fuente de datos para comenzar</p>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="flex gap-2 mb-6 border-b border-slate-200">
+                        <button id="tab-csv" onclick="switchTab('csv')"
+                            class="tab-button active px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-600 transition-colors">
+                            <i class="fa-solid fa-file-csv mr-2"></i>Archivo CSV
+                        </button>
+                        <button id="tab-sheets" onclick="switchTab('sheets')"
+                            class="tab-button px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors">
+                            <i class="fa-brands fa-google mr-2"></i>Google Sheets
+                        </button>
+                    </div>
+
+                    <!-- CSV Upload Content -->
+                    <div id="content-csv" class="tab-content">
+                        <div id="drop-zone"
+                            class="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-brand-400 transition-colors">
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 mb-3"></i>
+                            <p class="text-slate-600 text-sm mb-4">Arrastra y suelta tu archivo aquí, o haz clic para
+                                seleccionar</p>
+                            <input type="file" id="file-input" accept=".csv" class="hidden">
+                            <button onclick="document.getElementById('file-input').click()"
+                                class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm">
+                                <i class="fa-solid fa-folder-open mr-2"></i>Seleccionar Archivo
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-4 text-center">
+                            <i class="fa-solid fa-info-circle mr-1"></i>
+                            Columnas requeridas: ESTADO, FECHA DE APERTURA, AGENTE, DIAS APERTURA, PROBLEMA, ANÁLISIS DE
+                            CAUSAS, MOTIVO
+                        </p>
+                    </div>
+
+                    <!-- Google Sheets Content -->
+                    <div id="content-sheets" class="tab-content hidden">
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                                <div class="flex items-start gap-2">
+                                    <i class="fa-solid fa-lightbulb text-blue-600 mt-0.5"></i>
+                                    <div class="text-blue-800">
+                                        <p class="font-medium mb-1">¿Cómo conectar tu hoja?</p>
+                                        <ol class="list-decimal list-inside space-y-1 text-xs">
+                                            <li>Abre tu hoja de Google Sheets</li>
+                                            <li>Haz clic en "Compartir" → "Cualquiera con el enlace puede ver"</li>
+                                            <li>Copia el enlace completo</li>
+                                            <li>Pégalo abajo y haz clic en "Cargar Datos"</li>
+                                        </ol>
+                                        <p class="text-xs mt-2 text-blue-700">
+                                            <i class="fa-solid fa-info-circle mr-1"></i>
+                                            Se cargará automáticamente la pestaña "SOPORTE"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">
+                                    <i class="fa-solid fa-link mr-1"></i>Enlace de Google Sheets
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="sheet-url"
+                                        placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit..."
+                                        oninput="validateSheetUrl()"
+                                        class="w-full border-slate-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 p-3 pr-10">
+                                    <div id="url-status" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+                                        <i class="fa-solid fa-circle-check text-green-500 text-lg"></i>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-2">
+                                    <i class="fa-solid fa-paste mr-1"></i>
+                                    Pega aquí el enlace completo de tu hoja compartida
+                                </p>
+                            </div>
+
+                            <button onclick="loadFromGoogleSheets()"
+                                class="w-full bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm">
+                                <i class="fa-solid fa-cloud-download mr-2"></i>Cargar Datos desde Google Sheets
+                            </button>
+
+                            <div id="sheets-error"
+                                class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                                <i class="fa-solid fa-exclamation-triangle mr-2"></i>
+                                <span id="sheets-error-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content (Hidden initially) -->
+            <div id="dashboard-content" class="hidden space-y-6">
+
+                <!-- Filters -->
+                <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-4 items-end border border-slate-100">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Fecha
+                            Desde</label>
+                        <input type="date" id="date-from"
+                            class="w-full border-slate-200 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 p-2">
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Fecha
+                            Hasta</label>
+                        <input type="date" id="date-to"
+                            class="w-full border-slate-200 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 p-2">
+                    </div>
+                    <div class="flex-none">
+                        <button onclick="applyFilters()"
+                            class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            <i class="fa-solid fa-filter mr-2"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Total Cases -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-brand-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Total de Casos</p>
+                                <h3 class="text-3xl font-bold text-slate-900 mt-2" id="kpi-total">0</h3>
+                            </div>
+                            <div class="p-2 bg-brand-50 rounded-lg text-brand-600">
+                                <i class="fa-solid fa-ticket"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">En el periodo seleccionado</p>
+                    </div>
+
+                    <!-- Resolution Rate -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-emerald-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Tasa de Resolución</p>
+                                <h3 class="text-3xl font-bold text-slate-900 mt-2" id="kpi-resolution">0%</h3>
+                            </div>
+                            <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                                <i class="fa-solid fa-check-circle"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Casos cerrados vs Total</p>
+                    </div>
+
+                    <!-- Avg Resolution Time -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Tiempo Promedio</p>
+                                <h3 class="text-3xl font-bold text-slate-900 mt-2" id="kpi-avg-time">0</h3>
+                            </div>
+                            <div class="p-2 bg-amber-50 rounded-lg text-amber-600">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Días promedio de apertura</p>
+                    </div>
+                </div>
+
+                <!-- Charts Row 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Estado de Casos</h3>
+                        <div class="h-64">
+                            <canvas id="chart-status"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Casos por Agente</h3>
+                        <div class="h-64">
+                            <canvas id="chart-agents"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 2 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Top 5 Problemas</h3>
+                        <div class="h-64">
+                            <canvas id="chart-problems"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Evolución Temporal</h3>
+                        <div class="h-64">
+                            <canvas id="chart-timeline"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 3 (Motivo) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Casos por Motivo</h3>
+                        <div class="h-64">
+                            <canvas id="chart-motivo"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Concesionario Detail -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">Detalle: Motivo Concesionario</h3>
+                        <div class="overflow-y-auto h-64">
+                            <table class="min-w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+                                            Causa</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">
+                                            Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="concesionario-table-body" class="bg-white divide-y divide-slate-200">
+                                    <!-- Rows populated by JS -->
+                                </tbody>
+                            </table>
+                            <p id="concesionario-empty" class="text-sm text-slate-400 text-center mt-4 hidden">No hay
+                                casos de Concesionario.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Analysis Section -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border-t-4 border-brand-500">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Análisis Detallado de Causas</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Seleccionar Problema</label>
+                            <select id="problem-select"
+                                class="w-full md:w-1/3 border-slate-200 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 p-2.5 bg-slate-50">
+                                <option value="">-- Seleccione un problema --</option>
+                            </select>
+                        </div>
+
+                        <div id="analysis-results" class="hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-200">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                Análisis de Causas</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                Cantidad</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                % del Problema</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                % Global</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="analysis-table-body" class="bg-white divide-y divide-slate-200">
+                                        <!-- Rows will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Type and Problem Analysis Section -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border-t-4 border-purple-500">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">Análisis de Tipo y Problemas</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Seleccionar Tipo
+                                (Motivo)</label>
+                            <select id="type-select"
+                                class="w-full md:w-1/3 border-slate-200 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 p-2.5 bg-slate-50">
+                                <option value="">-- Seleccione un tipo --</option>
+                            </select>
+                        </div>
+
+                        <div id="type-analysis-results" class="hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-200">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                Problema</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                Cantidad</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                % del Tipo</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                % Global</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="type-analysis-table-body" class="bg-white divide-y divide-slate-200">
+                                        <!-- Rows will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- State Management ---
+        let rawData = [];
+        let filteredData = [];
+        let charts = {};
+
+        // --- DOM Elements ---
+        const uploadSection = document.getElementById('upload-section');
+        const fileInput = document.getElementById('file-input');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const dateFromInput = document.getElementById('date-from');
+        const dateToInput = document.getElementById('date-to');
+        const problemSelect = document.getElementById('problem-select');
+        const analysisResults = document.getElementById('analysis-results');
+        const analysisTableBody = document.getElementById('analysis-table-body');
+        const concesionarioTableBody = document.getElementById('concesionario-table-body');
+        const concesionarioEmpty = document.getElementById('concesionario-empty');
+        const typeSelect = document.getElementById('type-select');
+        const typeAnalysisResults = document.getElementById('type-analysis-results');
+        const typeAnalysisTableBody = document.getElementById('type-analysis-table-body');
+        const dropZone = document.getElementById('drop-zone');
+
+        // --- Tab Switching ---
+        function switchTab(tab) {
+            const csvTab = document.getElementById('tab-csv');
+            const sheetsTab = document.getElementById('tab-sheets');
+            const csvContent = document.getElementById('content-csv');
+            const sheetsContent = document.getElementById('content-sheets');
+
+            if (tab === 'csv') {
+                csvTab.classList.add('active', 'border-brand-600', 'text-brand-600');
+                csvTab.classList.remove('border-transparent', 'text-slate-500');
+                sheetsTab.classList.remove('active', 'border-brand-600', 'text-brand-600');
+                sheetsTab.classList.add('border-transparent', 'text-slate-500');
+                csvContent.classList.remove('hidden');
+                sheetsContent.classList.add('hidden');
+            } else {
+                sheetsTab.classList.add('active', 'border-brand-600', 'text-brand-600');
+                sheetsTab.classList.remove('border-transparent', 'text-slate-500');
+                csvTab.classList.remove('active', 'border-brand-600', 'text-brand-600');
+                csvTab.classList.add('border-transparent', 'text-slate-500');
+                sheetsContent.classList.remove('hidden');
+                csvContent.classList.add('hidden');
+            }
+        }
+
+        // --- Validate Sheet URL ---
+        function validateSheetUrl() {
+            const urlInput = document.getElementById('sheet-url');
+            const statusIcon = document.getElementById('url-status');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                statusIcon.classList.add('hidden');
+                return;
+            }
+
+            // Extract ID from Google Sheets URL
+            // Format: https://docs.google.com/spreadsheets/d/{ID}/edit...
+            const regex = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
+            const match = url.match(regex);
+
+            if (match && match[1]) {
+                statusIcon.classList.remove('hidden');
+                statusIcon.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 text-lg"></i>';
+            } else {
+                statusIcon.classList.remove('hidden');
+                statusIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+            }
+        }
+
+        // --- Google Sheets Integration (Public Export) ---
+        async function loadFromGoogleSheets() {
+            const urlInput = document.getElementById('sheet-url').value.trim();
+            const errorDiv = document.getElementById('sheets-error');
+            const errorMessage = document.getElementById('sheets-error-message');
+
+            // Hide previous errors
+            errorDiv.classList.add('hidden');
+
+            // Validate URL
+            if (!urlInput) {
+                errorMessage.textContent = 'Por favor, pega el enlace de tu hoja de Google Sheets.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Extract Sheet ID from URL
+            const regex = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
+            const match = urlInput.match(regex);
+
+            if (!match || !match[1]) {
+                errorMessage.textContent = 'El enlace no es válido. Asegúrate de copiar el enlace completo de Google Sheets.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const sheetId = match[1];
+            const sheetName = 'SOPORTE'; // Pestaña fija
+
+            try {
+                // Use public CSV export URL (no API key needed)
+                // Format: https://docs.google.com/spreadsheets/d/{ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+
+                const response = await fetch(csvUrl);
+
+                if (!response.ok) {
+                    throw new Error(`Error al cargar la hoja. Asegúrate de que:
+1. La hoja esté compartida públicamente
+2. Exista una pestaña llamada "SOPORTE"
+3. El enlace sea correcto`);
+                }
+
+                const csvText = await response.text();
+
+                if (!csvText || csvText.trim().length === 0) {
+                    throw new Error('La pestaña "SOPORTE" está vacía o no se encontró.');
+                }
+
+                // Parse CSV using PapaParse
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        if (results.errors.length > 0) {
+                            console.warn("Advertencias al parsear:", results.errors);
+                        }
+                        if (results.data && results.data.length > 0) {
+                            processData(results.data);
+                        } else {
+                            errorMessage.textContent = 'No se encontraron datos en la pestaña "SOPORTE".';
+                            errorDiv.classList.remove('hidden');
+                        }
+                    },
+                    error: function (err) {
+                        errorMessage.textContent = `Error al procesar los datos: ${err.message}`;
+                        errorDiv.classList.remove('hidden');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading Google Sheets:', error);
+                errorMessage.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        // Make functions available globally
+        window.loadFromGoogleSheets = loadFromGoogleSheets;
+        window.switchTab = switchTab;
+        window.validateSheetUrl = validateSheetUrl;
+
+        // --- Helper Functions ---
+        function formatDateDDMMYYYY(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatDateYYYYMMDD(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseDateDDMMYYYY(dateStr) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return null;
+        }
+
+        function parseDateYYYYMMDD(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+            return null;
+        }
+
+        // --- Event Listeners ---
+
+        // Drag & Drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('drag-active');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('drag-active');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFiles, false);
+        problemSelect.addEventListener('change', updateAnalysis, false);
+        typeSelect.addEventListener('change', updateTypeAnalysis, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({ target: { files: files } });
+        }
+
+        function handleFiles(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === "text/csv" || file.name.endsWith('.csv')) {
+                    parseCSV(file);
+                } else {
+                    alert("Por favor, sube un archivo CSV válido.");
+                }
+            }
+        }
+
+        // --- CSV Parsing ---
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    if (results.errors.length > 0) {
+                        console.warn("Errores en CSV:", results.errors);
+                    }
+                    processData(results.data);
+                },
+                error: function (err) {
+                    alert("Error al leer el archivo: " + err.message);
+                }
+            });
+        }
+
+        // --- Data Processing ---
+        function processData(data) {
+            // Normalize and clean data
+            rawData = data.map(row => {
+                // Handle column variations
+                const estado = row["ESTADO"] || row["3500"] || "";
+                const fechaStr = row["FECHA DE APERTURA"] || "";
+                const agente = row["AGENTE"] || "Sin Asignar";
+                const dias = parseInt(row["DIAS APERTURA"]) || 0;
+                const problema = row["PROBLEMA"] || "No especificado";
+                const causa = row["ANÁLISIS DE CAUSAS"] || "No especificado";
+                const motivo = row["MOTIVO"] || "No especificado";
+
+                // Parse Date (DD/MM/YYYY)
+                let fecha = null;
+                if (fechaStr) {
+                    const parts = fechaStr.split('/');
+                    if (parts.length === 3) {
+                        // Month is 0-indexed in JS Date
+                        fecha = new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                }
+
+                return {
+                    estado: estado.trim().toUpperCase(),
+                    fecha: fecha,
+                    agente: agente.trim(),
+                    dias: dias,
+                    problema: problema.trim(),
+                    causa: causa.trim(),
+                    motivo: motivo.trim()
+                };
+            }).filter(item => item.fecha && !isNaN(item.fecha.getTime())); // Filter invalid dates
+
+            if (rawData.length === 0) {
+                alert("No se encontraron datos válidos. Verifica el formato del CSV.");
+                return;
+            }
+
+            // Set initial date range
+            const dates = rawData.map(d => d.fecha).sort((a, b) => a - b);
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
+
+            dateFromInput.value = formatDateYYYYMMDD(minDate);
+            dateToInput.value = formatDateYYYYMMDD(maxDate);
+
+            // Show dashboard
+            uploadSection.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+
+            applyFilters();
+        }
+
+        // --- Filtering & Updating ---
+        function applyFilters() {
+            const fromDate = parseDateYYYYMMDD(dateFromInput.value);
+            const toDate = parseDateYYYYMMDD(dateToInput.value);
+
+            // Adjust toDate to include the full day
+            if (toDate) toDate.setHours(23, 59, 59, 999);
+
+            filteredData = rawData.filter(item => {
+                if (!fromDate || !toDate) return true;
+                return item.fecha >= fromDate && item.fecha <= toDate;
+            });
+
+            updateKPIs();
+            updateCharts();
+            updateProblemSelect();
+            updateTypeSelect();
+            updateAnalysis();
+            updateTypeAnalysis();
+            updateConcesionarioDetail();
+        }
+
+        // Expose applyFilters to window for the button
+        window.applyFilters = applyFilters;
+
+        function updateKPIs() {
+            const total = filteredData.length;
+            const closed = filteredData.filter(d => d.estado === "CERRADO" || d.estado === "CLOSED").length;
+            const totalDays = filteredData.reduce((acc, curr) => acc + curr.dias, 0);
+
+            document.getElementById('kpi-total').textContent = total;
+            document.getElementById('kpi-resolution').textContent = total > 0 ? Math.round((closed / total) * 100) + '%' : '0%';
+            document.getElementById('kpi-avg-time').textContent = total > 0 ? (totalDays / total).toFixed(1) + ' días' : '0';
+        }
+
+        // --- Detailed Analysis ---
+        function updateProblemSelect() {
+            // Get unique problems from filtered data
+            const problems = [...new Set(filteredData.map(d => d.problema))].sort();
+
+            // Save current selection
+            const currentSelection = problemSelect.value;
+
+            // Clear options (keep first)
+            problemSelect.innerHTML = '<option value="">-- Seleccione un problema --</option>';
+
+            problems.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p;
+                option.textContent = p;
+                problemSelect.appendChild(option);
+            });
+
+            // Restore selection if valid
+            if (problems.includes(currentSelection)) {
+                problemSelect.value = currentSelection;
+            }
+        }
+
+        function updateAnalysis() {
+            const selectedProblem = problemSelect.value;
+
+            if (!selectedProblem) {
+                analysisResults.classList.add('hidden');
+                return;
+            }
+
+            analysisResults.classList.remove('hidden');
+            analysisTableBody.innerHTML = '';
+
+            // Filter data for the selected problem
+            const problemData = filteredData.filter(d => d.problema === selectedProblem);
+            const totalGlobal = filteredData.length;
+            const totalProblem = problemData.length;
+
+            // Group by Cause
+            const causeCounts = {};
+            problemData.forEach(d => {
+                causeCounts[d.causa] = (causeCounts[d.causa] || 0) + 1;
+            });
+
+            // Sort by count descending
+            const sortedCauses = Object.entries(causeCounts).sort((a, b) => b[1] - a[1]);
+
+            sortedCauses.forEach(([causa, count]) => {
+                const percentProblem = ((count / totalProblem) * 100).toFixed(1) + '%';
+                const percentGlobal = ((count / totalGlobal) * 100).toFixed(1) + '%';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${causa}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${count}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <span>${percentProblem}</span>
+                            <div class="w-16 bg-slate-200 rounded-full h-1.5">
+                                <div class="bg-brand-500 h-1.5 rounded-full" style="width: ${percentProblem}"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${percentGlobal}</td>
+                `;
+                analysisTableBody.appendChild(row);
+            });
+        }
+
+        // --- Type Analysis ---
+        function updateTypeSelect() {
+            // Get unique types (motivos) from filtered data
+            const types = [...new Set(filteredData.map(d => d.motivo))].sort();
+
+            // Save current selection
+            const currentSelection = typeSelect.value;
+
+            // Clear options (keep first)
+            typeSelect.innerHTML = '<option value="">-- Seleccione un tipo --</option>';
+
+            types.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t;
+                option.textContent = t;
+                typeSelect.appendChild(option);
+            });
+
+            // Restore selection if valid
+            if (types.includes(currentSelection)) {
+                typeSelect.value = currentSelection;
+            }
+        }
+
+        function updateTypeAnalysis() {
+            const selectedType = typeSelect.value;
+
+            if (!selectedType) {
+                typeAnalysisResults.classList.add('hidden');
+                return;
+            }
+
+            typeAnalysisResults.classList.remove('hidden');
+            typeAnalysisTableBody.innerHTML = '';
+
+            // Filter data for the selected type
+            const typeData = filteredData.filter(d => d.motivo === selectedType);
+            const totalGlobal = filteredData.length;
+            const totalType = typeData.length;
+
+            // Group by Problem
+            const problemCounts = {};
+            typeData.forEach(d => {
+                problemCounts[d.problema] = (problemCounts[d.problema] || 0) + 1;
+            });
+
+            // Sort by count descending
+            const sortedProblems = Object.entries(problemCounts).sort((a, b) => b[1] - a[1]);
+
+            sortedProblems.forEach(([problema, count]) => {
+                const percentType = ((count / totalType) * 100).toFixed(1) + '%';
+                const percentGlobal = ((count / totalGlobal) * 100).toFixed(1) + '%';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${problema}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${count}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <span>${percentType}</span>
+                            <div class="w-16 bg-slate-200 rounded-full h-1.5">
+                                <div class="bg-purple-500 h-1.5 rounded-full" style="width: ${percentType}"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-right">${percentGlobal}</td>
+                `;
+                typeAnalysisTableBody.appendChild(row);
+            });
+        }
+
+        // --- Concesionario Analysis ---
+        function updateConcesionarioDetail() {
+            // Filter for Motivo = Concesionario (case insensitive)
+            const concesionarioData = filteredData.filter(d => d.motivo.toLowerCase() === 'concesionario');
+
+            concesionarioTableBody.innerHTML = '';
+
+            if (concesionarioData.length === 0) {
+                concesionarioEmpty.classList.remove('hidden');
+                return;
+            }
+
+            concesionarioEmpty.classList.add('hidden');
+
+            // Group by Cause
+            const causeCounts = {};
+            concesionarioData.forEach(d => {
+                causeCounts[d.causa] = (causeCounts[d.causa] || 0) + 1;
+            });
+
+            // Sort by count descending
+            const sortedCauses = Object.entries(causeCounts).sort((a, b) => b[1] - a[1]);
+
+            sortedCauses.forEach(([causa, count]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-700">${causa}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-sm font-bold text-slate-900 text-right">${count}</td>
+                `;
+                concesionarioTableBody.appendChild(row);
+            });
+        }
+
+        // --- Chart Rendering ---
+        function updateCharts() {
+            // Destroy existing charts
+            Object.values(charts).forEach(chart => chart.destroy());
+
+            // 1. Status Chart (Doughnut)
+            const statusCounts = {};
+            filteredData.forEach(d => statusCounts[d.estado] = (statusCounts[d.estado] || 0) + 1);
+
+            charts.status = new Chart(document.getElementById('chart-status'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // 2. Agents Chart (Bar)
+            const agentCounts = {};
+            filteredData.forEach(d => agentCounts[d.agente] = (agentCounts[d.agente] || 0) + 1);
+            // Sort by count
+            const sortedAgents = Object.entries(agentCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+            charts.agents = new Chart(document.getElementById('chart-agents'), {
+                type: 'bar',
+                data: {
+                    labels: sortedAgents.map(a => a[0]),
+                    datasets: [{
+                        label: 'Casos',
+                        data: sortedAgents.map(a => a[1]),
+                        backgroundColor: '#0ea5e9',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // 3. Problems Chart (Horizontal Bar)
+            const problemCounts = {};
+            filteredData.forEach(d => problemCounts[d.problema] = (problemCounts[d.problema] || 0) + 1);
+            const sortedProblems = Object.entries(problemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+            charts.problems = new Chart(document.getElementById('chart-problems'), {
+                type: 'bar',
+                indexAxis: 'y',
+                data: {
+                    labels: sortedProblems.map(p => p[0]),
+                    datasets: [{
+                        label: 'Frecuencia',
+                        data: sortedProblems.map(p => p[1]),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 4. Timeline Chart (Line)
+            // Proper timeline grouping
+            const timeMap = new Map();
+            filteredData.forEach(d => {
+                // Use YYYY-MM for sorting
+                const sortKey = `${d.fecha.getFullYear()}-${String(d.fecha.getMonth() + 1).padStart(2, '0')}`;
+                const displayKey = `${String(d.fecha.getDate()).padStart(2, '0')}/${d.fecha.toLocaleDateString('es-ES', { month: 'short' })}/${d.fecha.getFullYear()}`;
+                timeMap.set(sortKey, { display: displayKey, count: (timeMap.get(sortKey)?.count || 0) + 1 });
+            });
+
+            const sortedTime = Array.from(timeMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+            charts.timeline = new Chart(document.getElementById('chart-timeline'), {
+                type: 'line',
+                data: {
+                    labels: sortedTime.map(t => t[1].display),
+                    datasets: [{
+                        label: 'Casos por Mes',
+                        data: sortedTime.map(t => t[1].count),
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // 5. Motivo Chart (Pie)
+            const motivoCounts = {};
+            filteredData.forEach(d => motivoCounts[d.motivo] = (motivoCounts[d.motivo] || 0) + 1);
+
+            charts.motivo = new Chart(document.getElementById('chart-motivo'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(motivoCounts),
+                    datasets: [{
+                        data: Object.values(motivoCounts),
+                        backgroundColor: ['#ec4899', '#8b5cf6', '#6366f1', '#14b8a6', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        function resetDashboard() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
