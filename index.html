@@ -24,12 +24,13 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            800: '#075985',
-                            900: '#0c4a6e',
+                            50: '#e8f5f1',
+                            100: '#d1ebe3',
+                            500: '#18804D',
+                            600: '#204B42',
+                            700: '#1a3d36',
+                            800: '#153229',
+                            900: '#0f261d',
                         }
                     }
                 }
@@ -43,13 +44,13 @@
         }
 
         .drag-active {
-            border-color: #0ea5e9;
-            background-color: #f0f9ff;
+            border-color: #18804D;
+            background-color: #e8f5f1;
         }
 
         .tab-button.active {
-            border-bottom-color: #0284c7;
-            color: #0284c7;
+            border-bottom-color: #204B42;
+            color: #204B42;
         }
     </style>
 </head>
@@ -399,6 +400,28 @@
                 </div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-slate-200 py-4 mt-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <img src="logo-agdp-corvus.png"
+                            alt="AGDP powered by Corvus" class="h-12 object-contain"
+                            onerror="this.style.display='none'">
+                        <div class="text-center md:text-left">
+                            <p class="text-sm font-semibold text-slate-700">Dashboard de Gestión de Soporte</p>
+                            <p class="text-xs text-slate-500">Powered by <span
+                                    class="font-medium text-brand-600">AGDP</span> & <span
+                                    class="font-medium text-slate-700">Corvus</span></p>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-400">
+                        <p>© 2024 - ISO 9001 Quality Management</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
     </main>
 
     <script>
